@@ -1,0 +1,29 @@
+version: '3.6'
+
+networks:
+    hs_net:
+        driver: bridge
+        name: hs_net
+        ipam:
+            driver: default
+
+services:
+# traefik simple reverse proxy
+    traefik:
+        container_name: traefik
+        restart: on-failure
+        image: traefik
+        command: --api --docker
+        ports:
+            - "80:80"
+        volumes:
+            - '/var/run/docker.sock:/var/run/docker.sock:ro'
+            - './traefik.toml:/traefik.toml'
+        labels:
+            - "traefik.backend=traefik"
+            - "traefik.docker.network=hs_net"
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefixStrip: /traefik"
+            - "traefik.port=8080"
+        networks:
+            - hs_net

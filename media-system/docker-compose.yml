@@ -1,0 +1,73 @@
+version: '3.6'
+
+networks:
+    default:
+        external:
+          name: hs_net
+
+volumes:
+    portainer_data:
+        driver: local
+        name: portainer_data
+    nginx_data:
+        driver: local
+        name: nginx_data
+
+services:
+# nginx for simple landing page
+    nginx:
+        image: linuxserver/nginx
+        container_name: nginx
+        restart: always
+        volumes:
+            - '${DOCKER_DATA_DIR}/nginx/config:/config'
+        environment:
+            - PGID=${PGID}
+            - PUID=${PUID}
+            - TZ=Europe/Dublin
+        labels:
+            - "traefik.backend=nginx"
+            - "traefik.docker.network=hs_net"
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host:${SERVER_HOST}"
+            - "traefik.port=80"
+
+# portainer for docker management GUI
+    portainer:
+        container_name: portainer
+        restart: unless-stopped
+        volumes:
+            - 'portainer_data:/data'
+        labels:
+            - "traefik.backend=portainer"
+            - "traefik.docker.network=hs_net"
+            - "traefik.enable=true"
+            - "traefik.frontend.passHostHeader=true"
+            - "traefik.port=9000"
+            - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefixStrip: /portainer"
+            - "traefik.frontend.redirect.regex=^(.*)/portainer$$"
+            - "traefik.frontend.redirect.replacement=$$1/portainer/"
+            - "traefik.frontend.rule=PathPrefix:/portainer;ReplacePathRegex: ^/portainer/(.*) /$$1"
+        image: portainer/portainer
+
+# Sonarr downloader
+    sonarr:
+        container_name: sonarr
+        restart: unless-stopped
+        volumes:
+            - '${DOCKER_DATA_DIR}/sonarr:/config'
+# add more mounts below
+#            - '/mnt/tv:tv'
+        environment:
+            - PGID=${PGID}
+            - PUID=${PUID}
+            - TZ=Europe/Dublin
+        image: linuxserver/sonarr
+        labels:
+            - "traefik.backend=sonarr"
+            - "traefik.docker.network=hs_net"
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefix: /sonarr"
+            - "traefik.port=8989"
+        ports:
+            - '8989:8989'
