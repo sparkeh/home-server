@@ -56,8 +56,8 @@ services:
         restart: unless-stopped
         volumes:
             - '${DOCKER_DATA_DIR}/sonarr:/config'
-# add more mounts below
-#            - '/mnt/tv:tv'
+# add more mounts as required: EG tv
+#            - '/mnt/tv:/media/tv'
         environment:
             - PGID=${PGID}
             - PUID=${PUID}
@@ -69,5 +69,51 @@ services:
             - "traefik.enable=true"
             - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefix: /sonarr"
             - "traefik.port=8989"
-        ports:
-            - '8989:8989'
+# Needed to allow this to manually set path in sonarr. Disable after completed
+#        ports:
+#            - '8989:8989'
+
+
+# Radarr
+    radarr:
+        container_name: radarr
+        restart: unless-stopped
+        volumes:
+            - '${DOCKER_DATA_DIR}/radarr:/config'
+# add more mounts as required: EG movies
+#            - '/mnt/nfs/movies:/media/movies'
+        image: linuxserver/radarr
+        environment:
+            - PGID=${PGID}
+            - PUID=${PUID}
+            - TZ=Europe/Dublin
+        labels:
+            - "traefik.enable=true"
+            - "traefik.backend=radarr"
+            - "traefik.docker.network=hs_net"
+            - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefix: /radarr"
+            - "traefik.port=7878"
+# Needed to allow this to manually set path in Radarr. Disable after completed
+#        ports:
+#            - '7878:7878'
+
+
+# Sabnzbd
+    sabnzbd:
+        container_name: sabnzbd
+        image: linuxserver/sabnzdb
+        restart: unless-stopped
+        volumes:
+            - '${DOCKER_DATA_DIR}/sabnzbd:/config'
+            - '${DOWNLOADS_DIR}/sabnzbd/completed:/complete'
+            - '${DOWNLOADS_DIR}/sabnzbd/incomplete:/incomplete'
+            - '${DOWNLOADS_DIR}/sabnzbd/watch:/watch'
+        environment:
+            - PGID=${PGID}
+            - PUID=${PUID}
+            - TZ=Europe/Dublin
+        labels:
+            - "traefik.enable=true"
+            - "traefik.backend=sabnzbd
+            - "traefik.docker.network=hs_net"
+            - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefix: /sabnzbd"
