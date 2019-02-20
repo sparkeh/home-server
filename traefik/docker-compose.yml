@@ -10,12 +10,13 @@ networks:
 services:
 # traefik simple reverse proxy
     traefik:
-        container_name: traefik
+        container_name: traefik:latest
         restart: on-failure
         image: traefik
-        command: --api --docker
+        command: traefik --api --docker --acme=true --acme.domains=''${SERVER_HOST}' --acme.email='${EMAIL_ADDR}' --acme.entrypoint=https --acme.storage=acme.json --acme.caServer='https://acme-staging-v02.api.letsencrypt.org/directory'
         ports:
             - "80:80"
+            - "443:443"
         volumes:
             - '/var/run/docker.sock:/var/run/docker.sock:ro'
             - './traefik.toml:/traefik.toml'
@@ -24,6 +25,7 @@ services:
             - "traefik.docker.network=hs_net"
             - "traefik.enable=true"
             - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefixStrip: /traefik"
+            - "traefik.frontend.auth.basic.users=./.htpasswd"
             - "traefik.port=8080"
         networks:
             - hs_net
