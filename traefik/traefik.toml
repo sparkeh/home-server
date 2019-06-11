@@ -1,7 +1,11 @@
-defaultEntryPoints = ["http"]
+defaultEntryPoints = ["http", "https"]
 [entryPoints]
   [entryPoints.http]
   address = ":80"
+  compress = true
+  [entryPoints.https]
+  address = ":443"
+    [entryPoints.https.tls]
 [retry]
 [api]
 [ping]
