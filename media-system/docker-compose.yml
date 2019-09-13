@@ -1,6 +1,11 @@
 version: '3.6'
 
 networks:
+    hs_net:
+        driver: bridge
+        name: hs_net
+        ipam:
+            driver: default
     default:
         external:
           name: hs_net
@@ -14,11 +19,35 @@ volumes:
         name: nginx_data
 
 services:
+# traefik simple reverse proxy
+    traefik:
+        container_name: traefik:latest
+        restart: on-failure
+        image: traefik
+        command: traefik --api --docker --acme=true --acme.domains=''${SERVER_HOST}' --acme.email='${EMAIL_ADDR}' --acme.entrypoint=https --acme.storage=acme.json --acme.caServer='https://acme-staging-v02.api.letsencrypt.org/directory'
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - '/var/run/docker.sock:/var/run/docker.sock:ro'
+            - './traefik/traefik.toml:/traefik.toml'
+        labels:
+            - "traefik.backend=traefik"
+            - "traefik.docker.network=hs_net"
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefixStrip: /traefik"
+            - "traefik.frontend.auth.basic.users=./traefik/.htpasswd"
+            - "traefik.port=8080"
+        networks:
+            - hs_net
+
 # nginx for simple landing page
     nginx:
         image: linuxserver/nginx
         container_name: nginx
         restart: always
+        depends_on:
+          - traefik
         volumes:
             - '${DOCKER_DATA_DIR}/nginx/config:/config'
         environment:
@@ -36,6 +65,8 @@ services:
     portainer:
         container_name: portainer
         restart: unless-stopped
+        depends_on:
+          - traefik
         volumes:
             - 'portainer_data:/data'
         labels:
@@ -54,6 +85,8 @@ services:
     sonarr:
         container_name: sonarr
         restart: unless-stopped
+        depends_on:
+          - traefik
         volumes:
             - '${DOCKER_DATA_DIR}/sonarr:/config'
 # add more mounts as required: EG tv
@@ -67,7 +100,7 @@ services:
             - "traefik.backend=sonarr"
             - "traefik.docker.network=hs_net"
             - "traefik.enable=true"
-            - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefix: /sonarr"
+            - "traefik.frontend.rule=Host:${SERVER_HOST};PathPrefix:/sonarr"
             - "traefik.port=8989"
 # Needed to allow this to manually set path in sonarr. Disable after completed
 #        ports:
@@ -78,6 +111,8 @@ services:
     radarr:
         container_name: radarr
         restart: unless-stopped
+        depends_on:
+          - traefik
         volumes:
             - '${DOCKER_DATA_DIR}/radarr:/config'
 # add more mounts as required: EG movies
@@ -103,6 +138,8 @@ services:
         container_name: sabnzbd
         image: linuxserver/sabnzdb
         restart: unless-stopped
+        depends_on:
+          - traefik
         volumes:
             - '${DOCKER_DATA_DIR}/sabnzbd:/config'
             - '${DOWNLOADS_DIR}/sabnzbd/completed:/complete'
