@@ -1,0 +1,11 @@
+name: docker-compose-actions-workflow
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: change to directory
+        run: cd ./home-server
+      - name: Build stack
+        run: docker-compose up -d
