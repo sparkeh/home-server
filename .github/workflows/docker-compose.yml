@@ -6,6 +6,6 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: change to directory
-        run: cd ./home-server
+        run: cd home-server
       - name: Build stack
         run: docker-compose up -d
